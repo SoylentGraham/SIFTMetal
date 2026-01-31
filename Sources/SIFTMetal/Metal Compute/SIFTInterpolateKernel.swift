@@ -12,7 +12,7 @@ import MetalShaders
 
 final class SIFTInterpolateKernel {
     
-    private let maximumKeypoints = 4096
+    private let maximumKeypoints = SIFTMetal.maximumNumberOfKeypoints
     
     private let computePipelineState: MTLComputePipelineState
 //    private let differenceTextureArray: MTLTexture

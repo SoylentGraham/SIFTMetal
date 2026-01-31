@@ -32,7 +32,7 @@ final class SIFTOrientationKernel {
     
 //    typealias Parameters = SIFTOrientationKeypoint
     
-    private let maximumKeypoints = 4096
+    private let maximumKeypoints = SIFTMetal.maximumNumberOfKeypoints
     
     private let computePipelineState: MTLComputePipelineState
 

@@ -9,7 +9,8 @@ import Foundation
 import simd
 
 
-public struct SIFTDescriptor {
+public struct SIFTDescriptor : Codable, Equatable
+{
  
     // Detected keypoint.
     public let keypoint: SIFTKeypoint

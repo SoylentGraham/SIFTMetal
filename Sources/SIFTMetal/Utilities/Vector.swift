@@ -9,7 +9,8 @@ import Foundation
 import Accelerate
 
 
-public struct IntVector: Equatable, CustomStringConvertible {
+public struct IntVector: Equatable, CustomStringConvertible, Codable 
+{
     
     public let count: Int
    
@@ -60,7 +61,8 @@ public struct IntVector: Equatable, CustomStringConvertible {
 }
 
 
-public struct FloatVector: Equatable, CustomStringConvertible {
+public struct FloatVector: Equatable, CustomStringConvertible, Codable
+{
     
     public let count: Int
     public private(set) var components: [Float]

@@ -12,7 +12,7 @@ import MetalShaders
 
 public final class SIFTDescriptorKernel {
 
-    private let maximumKeypoints = 4096
+	private let maximumKeypoints = SIFTMetal.maximumNumberOfKeypoints
     
     private let computePipelineState: MTLComputePipelineState
 

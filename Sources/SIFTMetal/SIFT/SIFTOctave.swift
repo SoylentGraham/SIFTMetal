@@ -19,11 +19,13 @@ struct SIFTGradient {
     let magnitude: Float
 }
 
-private let maximumNumberOfExtrema = 4096
+//	gr: on a large image, this isnt enough, is it an arbritary size?
+//	gr: made public, so we can limit input
+internal let maximumNumberOfExtrema = 24000//4096
 
-private let maximumNumberOfKeypoints = 4096
+internal let maximumNumberOfKeypoints = 50*1000
 
-private let maximumNumberOfDescriptors = 2048
+internal let maximumNumberOfDescriptors = 2048
 
 
 final class SIFTOctave {

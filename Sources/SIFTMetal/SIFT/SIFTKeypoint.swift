@@ -8,7 +8,8 @@
 import Foundation
 
 
-public struct SIFTKeypoint {
+public struct SIFTKeypoint : Codable, Equatable
+{
     
     // Index of the level of the difference-of-gaussians pyramid.
     public var octave: Int

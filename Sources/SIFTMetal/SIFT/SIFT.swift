@@ -54,10 +54,11 @@ private let logger = Logger(
 ///
 public final class SIFT {
     
-    public struct Configuration {
-        
+    public struct Configuration 
+	{
+		//	exposed so we can see if the configuration matches a new one
         // Dimensions of the input image.
-        var inputSize: IntegralSize
+        public private(set) var inputSize: IntegralSize
         
         // Threshold over the Difference of Gaussians response (value
         // relative to scales per octave = 3)
@@ -103,6 +104,7 @@ public final class SIFT {
     }
 
     let configuration: Configuration
+	public var config : Configuration	{	configuration	}
     let dog: DifferenceOfGaussians
     let octaves: [SIFTOctave]
     

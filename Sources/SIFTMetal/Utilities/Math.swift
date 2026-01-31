@@ -8,7 +8,8 @@
 import Foundation
 
 
-public struct IntegralSize {
+public struct IntegralSize : Equatable, Hashable
+{
     public var width: Int
     public var height: Int
     
