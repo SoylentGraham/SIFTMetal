@@ -1,3 +1,4 @@
+#if canImport(UIKit)
 import UIKit
 import CoreGraphics
 
@@ -254,3 +255,4 @@ public final class SIFTRenderer {
         cgContext.restoreGState()
     }
 }
+#endif
