@@ -13,8 +13,17 @@ private let signposter = OSSignposter(subsystem: Bundle.main.bundleIdentifier!, 
 
 
 func measure(name: StaticString, worker: () -> Void) {
-    let signpostID = signposter.makeSignpostID()
-    let state = signposter.beginInterval(name, id: signpostID)
-    worker()
-    signposter.endInterval(name, state)
+	let signpostID = signposter.makeSignpostID()
+	let state = signposter.beginInterval(name, id: signpostID)
+	worker()
+	signposter.endInterval(name, state)
+}
+
+//	async for actor access
+func measure(name: StaticString, worker: ()async -> Void) async
+{
+	let signpostID = signposter.makeSignpostID()
+	let state = signposter.beginInterval(name, id: signpostID)
+	await worker()
+	signposter.endInterval(name, state)
 }

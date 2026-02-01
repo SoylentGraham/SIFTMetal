@@ -52,7 +52,7 @@ private let logger = Logger(
 /// See: https://github.com/robwhess/opensift
 /// See: https://medium.com/jun94-devpblog/cv-13-scale-invariant-local-feature-extraction-3-sift-315b5de72d48
 ///
-public final class SIFT {
+public final actor SIFT {
     
     public struct Configuration 
 	{
@@ -103,10 +103,10 @@ public final class SIFT {
         }
     }
 
-    let configuration: Configuration
+	let configuration: Configuration
 	public var config : Configuration	{	configuration	}
     let dog: DifferenceOfGaussians
-    let octaves: [SIFTOctave]
+    let octaves: SIFTOctaveManager
     
     private let device: MTLDevice
     private let commandQueue: MTLCommandQueue
@@ -123,39 +123,29 @@ public final class SIFT {
                 inputDimensions: configuration.inputSize
             )
         )
-        let octaves: [SIFTOctave] = {
-            let gradientFunction = SIFTGradientKernel(device: device)
-
-            var octaves = [SIFTOctave]()
-            for scale in dog.octaves {
-                let octave = SIFTOctave(
-                    device: device,
-                    scale: scale,
-                    gradientFunction: gradientFunction
-                )
-                octaves.append(octave)
-            }
-            return octaves
-        }()
         
         self.commandQueue = device.makeCommandQueue()!
         self.configuration = configuration
         self.dog = dog
-        self.octaves = octaves
+        self.octaves = SIFTOctaveManager(device: device, dog: dog)
     }
 
     // MARK: Keypoints
     
-    public func getKeypoints(_ inputTexture: MTLTexture) -> [[SIFTKeypoint]] {
-        findKeypoints(inputTexture: inputTexture)
-        let keypointOctaves = getKeypointsFromOctaves()
-        let interpolatedKeypoints = interpolateKeypoints(keypointOctaves: keypointOctaves)
+    public func getKeypoints(_ inputTexture: MTLTexture) async -> [[SIFTKeypoint]]  
+	{
+        await findKeypoints(inputTexture: inputTexture)
+        let keypointOctaves = await getKeypointsFromOctaves()
+        let interpolatedKeypoints = await interpolateKeypoints(keypointOctaves: keypointOctaves)
         return interpolatedKeypoints
     }
     
-    private func findKeypoints(inputTexture: MTLTexture) {
-        measure(name: "findKeypoints") {
-            capture(commandQueue: commandQueue, capture: false) {
+    private func findKeypoints(inputTexture: MTLTexture) async 
+	{
+        await measure(name: "findKeypoints") 
+		{
+            await capture(commandQueue: commandQueue, capture: false) 
+			{
                 let commandBuffer = commandQueue.makeCommandBuffer()!
                 commandBuffer.label = "siftKeypointsCommandBuffer"
                 
@@ -164,22 +154,29 @@ public final class SIFT {
                     originalTexture: inputTexture
                 )
                 
-                for octave in octaves {
+				await octaves.ForEach
+				{
+					i,octave in
                     octave.encode(
                         commandBuffer: commandBuffer
                     )
                 }
                 
                 commandBuffer.commit()
-                commandBuffer.waitUntilCompleted()
+                //commandBuffer.waitUntilCompleted()
+				await commandBuffer.completed()
             }
         }
     }
     
-    private func getKeypointsFromOctaves() -> [Buffer<SIFTExtremaResult>] {
+    private func getKeypointsFromOctaves() async -> [Buffer<SIFTExtremaResult>] 
+	{
         var output = [Buffer<SIFTExtremaResult>]()
-        measure(name: "getKeypointsFromOctaves") {
-            for octave in octaves {
+        await measure(name: "getKeypointsFromOctaves") 
+		{
+			await octaves.ForEach
+			{
+				i,octave in
                 let keypoints = octave.getKeypoints()
                 output.append(keypoints)
             }
@@ -189,16 +186,31 @@ public final class SIFT {
         return output
     }
     
-    private func interpolateKeypoints(keypointOctaves: [Buffer<SIFTExtremaResult>]) -> [[SIFTKeypoint]] {
+    private func interpolateKeypoints(keypointOctaves: [Buffer<SIFTExtremaResult>]) async -> [[SIFTKeypoint]] {
         var output = [[SIFTKeypoint]]()
-        measure(name: "interpolateKeypoints") {
-            for o in 0 ..< keypointOctaves.count {
+        await measure(name: "interpolateKeypoints") 
+		{
+			//	gr; assuming this is going to match up
+			/*
+            for o in 0 ..< keypointOctaves.count 
+			{
                 let keypoints = keypointOctaves[o]
-                output.append(octaves[o].interpolateKeypoints(
-                    commandQueue: commandQueue,
-                    keypoints: keypoints
-                ))
-            }
+				let interpolatedKeypoints = octaves[o].interpolateKeypoints(
+					commandQueue: commandQueue,
+					keypoints: keypoints
+				)
+                output.append(interpolatedKeypoints)
+            }*/
+			await octaves.ForEach
+			{
+				o,octave in
+				let keypoints = keypointOctaves[o]
+				let interpolatedKeypoints = octave.interpolateKeypoints(
+					commandQueue: commandQueue,
+					keypoints: keypoints
+				)
+				output.append(interpolatedKeypoints)
+			}
         }
         return output
     }
@@ -206,14 +218,16 @@ public final class SIFT {
     
     // MARK: Descriptora
     
-    public func getDescriptors(keypointOctaves: [[SIFTKeypoint]]) -> [[SIFTDescriptor]] {
+	public func getDescriptors(keypointOctaves: [[SIFTKeypoint]]) async -> [[SIFTDescriptor]] {
         precondition(keypointOctaves.count == octaves.count)
         
         // Get all orientations for all keypoints.
         var orientationOctaves = [[SIFTKeypointOrientations]]()
-        measure(name: "getDescriptors(orientations)") {
-            for i in 0 ..< octaves.count {
-                let octave = octaves[i]
+        await measure(name: "getDescriptors(orientations)") 
+		{
+			await octaves.ForEach
+			{
+				i,octave in
                 let keypoints = keypointOctaves[i]
                 let orientationOctave = octave.getKeypointOrientations(
                     commandQueue: commandQueue,
@@ -225,9 +239,11 @@ public final class SIFT {
         
         // Get descriptors for each orientation.
         var output: [[SIFTDescriptor]] = []
-        measure(name: "getDescriptors(descriptors)") {
-            for i in 0 ..< octaves.count {
-                let octave = octaves[i]
+        await measure(name: "getDescriptors(descriptors)") 
+		{
+			await octaves.ForEach
+			{
+				i, octave in
                 let orientationOctave = orientationOctaves[i]
                 let descriptors = octave.getDescriptors(
                     commandQueue: commandQueue,

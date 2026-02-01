@@ -28,6 +28,38 @@ internal let maximumNumberOfKeypoints = 50*1000
 internal let maximumNumberOfDescriptors = 2048
 
 
+//	wrapped in an actor for safe multithread access
+final actor SIFTOctaveManager
+{
+	let octaves : [SIFTOctave]
+	nonisolated var count : Int	{	octaves.count	}
+	
+	init(device:MTLDevice,dog:DifferenceOfGaussians)
+	{
+		let gradientFunction = SIFTGradientKernel(device: device)
+		
+		self.octaves = dog.octaves.map
+		{
+			scale in
+			let octave = SIFTOctave(
+				device: device,
+					scale: scale,
+					gradientFunction: gradientFunction
+				)
+			return octave
+		}
+	}
+	
+	func ForEach(_ callback:(Int,SIFTOctave)->Void)
+	{
+		for i in 0 ..< octaves.count 
+		{
+			let octave = octaves[i]
+			callback(i,octave)
+		}
+	}
+}
+
 final class SIFTOctave {
     
     let scale: DifferenceOfGaussians.Octave
